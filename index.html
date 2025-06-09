@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Peak Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Peak Detector</h1>
+    <button id="toggleButton" onclick="toggleRecording()">Start</button>
+    <div id="output">Press Start to begin detecting audio peaks.</div>
+
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let scriptProcessor = null;
+        let startTime = null;
+        let isRecording = false;
+        const sampleRate = 44100;
+        const threshold = 0.1;
+        const bufferSize = 1024;
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                analyser = audioContext.createAnalyser();
+                scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.connect(scriptProcessor);
+                scriptProcessor.connect(audioContext.destination);
+
+                scriptProcessor.onaudioprocess = function (e) {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    const volume = Math.abs(inputData.reduce((sum, val) => sum + Math.abs(val), 0) / inputData.length);
+
+                    const outputDiv = document.getElementById('output');
+                    if (volume > threshold && startTime === null) {
+                        startTime = performance.now() / 1000;
+                        outputDiv.textContent = 'Initial peak detected!';
+                    } else if (volume > threshold && startTime !== null) {
+                        const endTime = performance.now() / 1000;
+                        const timeDiff = endTime - startTime;
+                        outputDiv.textContent = `Time between peaks: ${timeDiff.toFixed(4)} seconds`;
+                        startTime = null;
+                    }
+                };
+
+                document.getElementById('toggleButton').textContent = 'Stop';
+                isRecording = true;
+            } catch (err) {
+                document.getElementById('output').textContent = 'Error accessing microphone: ' + err.message;
+            }
+        }
+
+        function stopRecording() {
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+                analyser = null;
+                scriptProcessor = null;
+                startTime = null;
+                document.getElementById('toggleButton').textContent = 'Start';
+                document.getElementById('output').textContent = 'Recording stopped. Press Start to begin again.';
+                isRecording = false;
+            }
+        }
+
+        function toggleRecording() {
+            const button = document.getElementById('toggleButton');
+            button.disabled = true;
+            if (!isRecording) {
+                startRecording().then(() => {
+                    button.disabled = false;
+                });
+            } else {
+                stopRecording();
+                button.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
