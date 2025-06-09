@@ -69,14 +69,16 @@
                     const volume = Math.abs(inputData.reduce((sum, val) => sum + Math.abs(val), 0) / inputData.length);
 
                     const outputDiv = document.getElementById('output');
-                    if (volume > threshold && startTime === null) {
-                        startTime = performance.now() / 1000;
-                        outputDiv.textContent = 'Initial peak detected!';
-                    } else if (volume > threshold && startTime !== null) {
-                        const endTime = performance.now() / 1000;
-                        const timeDiff = endTime - startTime;
-                        outputDiv.textContent = `Time between peaks: ${timeDiff.toFixed(4)} seconds`;
-                        startTime = null;
+                    if (volume > threshold) {
+                        const currentTime = performance.now() / 1000;
+                        if (startTime === null) {
+                            startTime = currentTime;
+                            outputDiv.textContent = 'First peak detected! Waiting for next peak...';
+                        } else {
+                            const timeDiff = currentTime - startTime;
+                            outputDiv.textContent = `Time between peaks: ${timeDiff.toFixed(4)} seconds`;
+                            startTime = currentTime; // Set startTime to current peak for next interval
+                        }
                     }
                 };
 
