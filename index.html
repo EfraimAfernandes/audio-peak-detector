@@ -7,14 +7,36 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f0f0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
+            min-height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+            width: 90%;
+            max-width: 1200px;
+            gap: 20px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+        .main-content {
+            flex: 1;
+            min-width: 250px;
             text-align: center;
+        }
+        .sidebar {
+            flex: 1;
+            min-width: 250px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-height: 60vh;
+            overflow-y: auto;
         }
         button {
             padding: 15px 30px;
@@ -35,12 +57,38 @@
             font-size: 16px;
             color: #333;
         }
+        #interval-list {
+            list-style: none;
+            padding: 0;
+            font-size: 14px;
+        }
+        #interval-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        @media (max-width: 600px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .main-content, .sidebar {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
     <h1>Audio Peak Detector</h1>
-    <button id="toggleButton" onclick="toggleRecording()">Start</button>
-    <div id="output">Press Start to begin detecting audio peaks.</div>
+    <div class="container">
+        <div class="main-content">
+            <button id="toggleButton" onclick="toggleRecording()">Start</button>
+            <div id="output">Press Start to begin detecting audio peaks.</div>
+        </div>
+        <div class="sidebar">
+            <h2>Interval History</h2>
+            <ul id="interval-list"></ul>
+        </div>
+    </div>
 
     <script>
         let audioContext = null;
@@ -51,6 +99,7 @@
         const sampleRate = 44100;
         const threshold = 0.1;
         const bufferSize = 1024;
+        let intervals = [];
 
         async function startRecording() {
             try {
@@ -77,6 +126,8 @@
                         } else {
                             const timeDiff = currentTime - startTime;
                             outputDiv.textContent = `Time between peaks: ${timeDiff.toFixed(4)} seconds`;
+                            intervals.push({ time: timeDiff, timestamp: new Date().toLocaleTimeString() });
+                            updateIntervalList();
                             startTime = currentTime; // Set startTime to current peak for next interval
                         }
                     }
@@ -113,6 +164,16 @@
                 stopRecording();
                 button.disabled = false;
             }
+        }
+
+        function updateIntervalList() {
+            const intervalList = document.getElementById('interval-list');
+            intervalList.innerHTML = '';
+            intervals.forEach((interval, index) => {
+                const li = document.createElement('li');
+                li.textContent = `Interval ${index + 1} at ${interval.timestamp}: ${interval.time.toFixed(4)} seconds`;
+                intervalList.appendChild(li);
+            });
         }
     </script>
 </body>
